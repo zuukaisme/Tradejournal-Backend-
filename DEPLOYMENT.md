@@ -1,33 +1,45 @@
-# Production deployment
+# Deploy to Vercel
 
-The API is container-ready and can be deployed through Dokploy or another Docker Compose host. PostgreSQL should be a managed PostgreSQL database for production. Do not use the local development database or commit production credentials.
+The backend runs as a Go serverless function on Vercel. The existing Go + Gin API and PostgreSQL schema are retained.
 
-## Required environment
+## 1. Import the repository
 
-Create a private `.env.production` file on the deployment host using `.env.production.example` as a template.
+1. Open Vercel and choose **Add New → Project**.
+2. Import `zuukaisme/Tradejournal-Backend-` from GitHub.
+3. Keep the project root directory as `./`.
+4. Deploy after adding the environment variables below.
 
-- `APP_ENV=production`
-- `APP_PORT=8080`
-- `DATABASE_URL`: managed PostgreSQL connection string. Use the provider's TLS-enabled connection string and retain `sslmode=require` (or the provider's stricter TLS setting).
-- `JWT_SECRET`: a unique random secret of at least 32 characters. Generate it on the deployment host; never reuse the example value.
+Vercel detects the Go function in `api/index.go`. The root rewrite forwards API requests to that function while preserving the requested route.
 
-The API automatically applies pending database migrations during startup. Keep the database reachable before deploying a new application version. Back up the database before production upgrades.
+## 2. Add PostgreSQL from Vercel
 
-## Dokploy / Docker Compose
+1. Open the project in Vercel.
+2. Open **Storage / Marketplace** and install the **Neon Postgres** integration.
+3. Create a database and connect it to this Vercel project.
+4. Ensure the integration provides `DATABASE_URL` to Production and Preview environments. Use the pooled connection string where the integration offers one.
 
-1. Create an application from this repository.
-2. Set the Compose file to `docker-compose.production.yml`.
-3. Add the production environment variables in Dokploy's environment settings, or provide `.env.production` securely on the host.
-4. Set the application service's exposed container port to `8080`.
-5. Attach a domain and enable HTTPS through the Dokploy proxy.
-6. Deploy, then verify `GET /health` and `GET /ready` on the deployed domain.
+Vercel Postgres is no longer a separate first-party product; use the Neon Marketplace integration.
 
-Do not publish port 8080 directly to the public internet when using a reverse proxy. Route traffic through the HTTPS proxy.
+## 3. Add the application secret
 
-## Database
+In **Project → Settings → Environment Variables**, add:
 
-Use a managed PostgreSQL instance with automated backups and point-in-time recovery where available. Restrict database network access to the application host when the provider supports it. The application requires permission to create and update its migration history and application tables.
+- `JWT_SECRET`: a unique cryptographically random value with at least 32 characters.
 
-## Not deployed yet
+The database integration supplies `DATABASE_URL`. Do not put either secret in GitHub or source files. Redeploy after changing environment variables.
 
-This repository change only prepares the deployment configuration and instructions. It does not create a database, configure a domain, provision secrets, or deploy the API. Email delivery, cloud backup endpoints, and object storage remain separate future work.
+## 4. Verify
+
+After deployment, open:
+
+- `https://YOUR-PROJECT.vercel.app/health`
+- `https://YOUR-PROJECT.vercel.app/ready`
+
+The first checks that the API function is responding. The second also checks the PostgreSQL connection. The API applies pending migrations when its function instance initializes.
+
+## Notes
+
+- Vercel's Go runtime is currently Beta.
+- This repository change prepares the application for Vercel; it does not create the Vercel project, provision Neon, add secrets, or deploy it.
+- Email verification, password-reset email delivery, cloud backup endpoints, and file storage are not implemented yet.
+- The current account API is available under `/v1/auth`.
