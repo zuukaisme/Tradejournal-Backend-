@@ -28,8 +28,7 @@ Registration generates a unique account ID automatically. Passwords are hashed w
 1. Copy `.env.example` to `.env`.
 2. Set `JWT_SECRET` to a private random value of at least 32 characters.
 3. Start PostgreSQL with `docker compose up -d db`.
-4. Apply `migrations/000001_initial_schema.up.sql` to the database.
-5. Export the environment values from `.env` and run `go run ./cmd/api`.
+4. Export the environment values from `.env` and run `go run ./cmd/api`. The API applies pending SQL migrations automatically before accepting requests.
 
 The API listens on `:8080` by default.
 
