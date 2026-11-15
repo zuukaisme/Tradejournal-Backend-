@@ -9,6 +9,7 @@ type Config struct {
 	Environment string
 	Port        string
 	DatabaseURL string
+	JWTSecret string
 }
 
 func Load() (Config, error) {
@@ -16,6 +17,11 @@ func Load() (Config, error) {
 		Environment: valueOrDefault("APP_ENV", "development"),
 		Port:        valueOrDefault("APP_PORT", "8080"),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
+	}
+
+	if cfg.JWTSecret == "" || len(cfg.JWTSecret) < 32 {
+		return Config{}, fmt.Errorf("JWT_SECRET must be set to at least 32 characters")
 	}
 
 	if cfg.DatabaseURL == "" {
