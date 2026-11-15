@@ -22,11 +22,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db, err := database.Connect(context.Background(), cfg.DatabaseURL)
+	startupCtx, startupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer startupCancel()
+
+	db, err := database.Connect(startupCtx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
+	if err := database.Migrate(startupCtx, db); err != nil {
+		log.Fatal(err)
+	}
 
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
