@@ -52,4 +52,4 @@ jobs:
         run: go test -race -cover ./...
 
       - name: Build
-        run: go build -trimpath ./cmd/api
+        run: go build -trimpath -o /tmp/tradejournal-api ./cmd/api
