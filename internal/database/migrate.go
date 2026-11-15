@@ -4,12 +4,14 @@ import (
 	"context"
 	"embed"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
-func Migrate(ctx context.Context, pool Querier) error {
+func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin migration transaction: %w", err)
@@ -47,19 +49,4 @@ func Migrate(ctx context.Context, pool Querier) error {
 		return fmt.Errorf("commit migrations: %w", err)
 	}
 	return nil
-}
-
-type Querier interface {
-	Begin(context.Context) (Transaction, error)
-}
-
-type Transaction interface {
-	Exec(context.Context, string, ...any) (any, error)
-	QueryRow(context.Context, string, ...any) Row
-	Commit(context.Context) error
-	Rollback(context.Context) error
-}
-
-type Row interface {
-	Scan(...any) error
 }
