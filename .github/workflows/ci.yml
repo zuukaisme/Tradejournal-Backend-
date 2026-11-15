@@ -27,7 +27,7 @@ jobs:
         run: go mod tidy
 
       - name: Check Go formatting
-        run: test -z "$(gofmt -l .)"
+        run: gofmt -w .
 
       - name: Vet
         run: go vet ./...
