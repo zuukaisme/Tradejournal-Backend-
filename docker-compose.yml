@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: tradejournal
+      POSTGRES_USER: tradejournal
+      POSTGRES_PASSWORD: tradejournal
+    ports:
+      - "5432:5432"
+    volumes:
+      - tradejournal_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradejournal -d tradejournal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      APP_ENV: development
+      APP_PORT: 8080
+      DATABASE_URL: postgres://tradejournal:tradejournal@db:5432/tradejournal?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  tradejournal_postgres_data:
