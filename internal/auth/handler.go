@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -241,5 +239,3 @@ func nullableString(value string) any {
 	return strings.TrimSpace(value)
 }
 
-var _ = pgx.ErrNoRows
-var _ = uuid.Nil
