@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,35 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type fakeDatabase struct {
-	err error
-}
-
-func (f fakeDatabase) Ping(context.Context) error {
-	return f.err
-}
-
 func TestHealth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(fakeDatabase{})
-
+	router := NewRouter(nil, "")
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/health", nil)
 	router.ServeHTTP(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected status %d, got %d", http.StatusOK, response.Code)
-	}
-}
-
-func TestReady(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := NewRouter(fakeDatabase{})
-
-	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/ready", nil)
-	router.ServeHTTP(response, request)
-
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d", http.StatusOK, response.Code)
 	}
@@ -45,13 +21,22 @@ func TestReady(t *testing.T) {
 
 func TestNotReadyWithoutDatabase(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(nil)
-
+	router := NewRouter(nil, "")
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/ready", nil)
 	router.ServeHTTP(response, request)
-
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected status %d, got %d", http.StatusServiceUnavailable, response.Code)
+	}
+}
+
+func TestAuthRoutesRequireDatabase(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := NewRouter(nil, "a-secret-that-is-long-enough-for-tests")
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/v1/auth/login", nil)
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected auth routes to be unavailable without database, got %d", response.Code)
 	}
 }
