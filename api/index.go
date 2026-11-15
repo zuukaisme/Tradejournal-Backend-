@@ -25,11 +25,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		cfg, err := config.Load()
 		if err == nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
-			defer cancel()
-
-			var dbErr error
-			var db = func() {}
-			_ = db
 			pool, connectErr := database.Connect(ctx, cfg.DatabaseURL)
 			if connectErr != nil {
 				err = connectErr
@@ -42,7 +37,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				}
 				appHandler = httpapi.NewRouter(pool, cfg.JWTSecret)
 			}
-			_ = dbErr
+			cancel()
 		}
 		if err != nil {
 			initMu.Unlock()
