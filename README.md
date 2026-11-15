@@ -11,40 +11,30 @@ Go + Gin API for Tradejournal accounts and future cloud backup.
 - Docker and Docker Compose
 - GitHub Actions CI
 
-## Current scope
+## Current endpoints
 
-This repository contains the backend foundation: configuration, PostgreSQL connectivity, health endpoints, the initial account/session schema, local development setup, and automated checks.
+- `GET /health` — process health.
+- `GET /ready` — checks PostgreSQL connectivity.
+- `POST /v1/auth/register` — create an account using email and password.
+- `POST /v1/auth/login` — sign in.
+- `POST /v1/auth/refresh` — rotate a refresh token.
+- `POST /v1/auth/logout` — revoke all active sessions for the account.
+- `GET /v1/auth/me` — return the authenticated user and account IDs.
 
-Authentication endpoints, email delivery, cloud backup uploads, and object storage are intentionally not enabled yet. They will be added in separate stages and tested before the Android app depends on them.
+Registration generates a unique account ID automatically. Passwords are hashed with bcrypt. Access tokens expire after 15 minutes; refresh tokens are random, stored as hashes, rotated on refresh, and expire after 30 days.
 
 ## Run locally
 
 1. Copy `.env.example` to `.env`.
-2. Start PostgreSQL:
-
-```sh
-docker compose up -d db
-```
-
-3. Apply the initial schema:
-
-```sh
-psql "$DATABASE_URL" -f migrations/000001_initial_schema.up.sql
-```
-
-4. Start the API:
-
-```sh
-go run ./cmd/api
-```
+2. Set `JWT_SECRET` to a private random value of at least 32 characters.
+3. Start PostgreSQL with `docker compose up -d db`.
+4. Apply `migrations/000001_initial_schema.up.sql` to the database.
+5. Export the environment values from `.env` and run `go run ./cmd/api`.
 
 The API listens on `:8080` by default.
-
-## Endpoints
-
-- `GET /health` — process health.
-- `GET /ready` — checks PostgreSQL connectivity.
 
 ## Configuration
 
 See `.env.example`. Never commit real credentials or production secrets.
+
+Email verification, password-reset delivery, cloud backup endpoints, and object storage are not enabled yet.
