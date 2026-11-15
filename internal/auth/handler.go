@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -66,7 +67,8 @@ func (h *Handler) register(c *gin.Context) {
 	var userID, accountID, savedEmail string
 	err = h.db.QueryRow(c.Request.Context(), `INSERT INTO users (email, email_normalized, password_hash) VALUES ($1, lower($1), $2) RETURNING id, account_id, email`, email, string(hash)).Scan(&userID, &accountID, &savedEmail)
 	if err != nil {
-		if strings.Contains(strings.ToLower(err.Error()), "duplicate key") {
+		var postgresError *pgconn.PgError
+		if errors.As(err, &postgresError) && postgresError.Code == "23505" {
 			c.JSON(http.StatusConflict, gin.H{"error": "An account with this email already exists"})
 			return
 		}
@@ -202,6 +204,10 @@ func (h *Handler) parseAccessToken(token string) (claims, error) {
 	if len(parts) != 3 {
 		return result, errors.New("invalid token")
 	}
+	expectedHeader := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
+	if parts[0] != expectedHeader {
+		return result, errors.New("unsupported token header")
+	}
 	mac := hmac.New(sha256.New, h.secret)
 	mac.Write([]byte(parts[0] + "." + parts[1]))
 	expected := mac.Sum(nil)
@@ -213,7 +219,8 @@ func (h *Handler) parseAccessToken(token string) (claims, error) {
 	if err != nil || json.Unmarshal(payload, &result) != nil {
 		return result, errors.New("invalid claims")
 	}
-	if result.ExpiresAt <= time.Now().Unix() || result.Issuer != "tradejournal-api" || result.UserID == "" || result.AccountID == "" {
+	now := time.Now().Unix()
+	if result.ExpiresAt <= now || result.IssuedAt > now+60 || result.ExpiresAt <= result.IssuedAt || result.ExpiresAt-result.IssuedAt > 15*60 || result.Issuer != "tradejournal-api" || result.UserID == "" || result.AccountID == "" {
 		return result, errors.New("expired or invalid claims")
 	}
 	return result, nil

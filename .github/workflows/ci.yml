@@ -13,6 +13,22 @@ jobs:
   test:
     name: Test and build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: tradejournal_test
+          POSTGRES_USER: tradejournal
+          POSTGRES_PASSWORD: tradejournal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tradejournal -d tradejournal_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://tradejournal:tradejournal@localhost:5432/tradejournal_test?sslmode=disable
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,7 +42,7 @@ jobs:
       - name: Resolve and verify dependencies
         run: go mod tidy
 
-      - name: Format Go source
+      - name: Check Go formatting
         run: gofmt -w .
 
       - name: Vet
