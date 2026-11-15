@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -37,8 +38,14 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 		if err != nil {
 			return fmt.Errorf("read initial migration: %w", err)
 		}
-		if _, err := tx.Exec(ctx, string(schema)); err != nil {
-			return fmt.Errorf("apply initial migration: %w", err)
+		for _, statement := range strings.Split(string(schema), ";") {
+			statement = strings.TrimSpace(statement)
+			if statement == "" {
+				continue
+			}
+			if _, err := tx.Exec(ctx, statement); err != nil {
+				return fmt.Errorf("apply initial migration: %w", err)
+			}
 		}
 		if _, err := tx.Exec(ctx, "INSERT INTO schema_migrations (version) VALUES (1)"); err != nil {
 			return fmt.Errorf("record initial migration: %w", err)
